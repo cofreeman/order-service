@@ -8,6 +8,7 @@ import com.example.orderservice.service.OrderService;
 import com.example.orderservice.vo.RequestOrder;
 import com.example.orderservice.vo.ResponseOrder;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.core.env.Environment;
@@ -22,6 +23,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/order-service")
+@Slf4j
 public class OrderController {
     private final Environment environment;
     private final OrderService orderService;
@@ -36,6 +38,7 @@ public class OrderController {
     @PostMapping("/{userId}/orders")
     public ResponseEntity<ResponseOrder> createOrder(@RequestBody RequestOrder order,
                                                      @PathVariable String userId){
+        log.info("Before add orders data");
         ModelMapper modelMapper = new ModelMapper();
         modelMapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
@@ -54,15 +57,18 @@ public class OrderController {
         kafkaProducer.send("example-catalog-topic",orderDto);
         orderProducer.send("orders",orderDto);
 
+        log.info("After added orders data");
         return ResponseEntity.status(HttpStatus.CREATED).body(returnValue);
 
 
     }
     @GetMapping("/{userId}/orders")
     public ResponseEntity<List<ResponseOrder>> getOrdersByUserId(@PathVariable("userId") String userId){
+        log.info("Before retrieve orders data");
         Iterable<OrderEntity> orderEntities = orderService.getOrdersByUserId(userId);
         List<ResponseOrder> result = new ArrayList<>();
         orderEntities.forEach(v -> result.add(new ModelMapper().map(v,ResponseOrder.class)));
+        log.info("After retrieved orders data");
         return ResponseEntity.status(HttpStatus.OK).body(result);
     }
 }
